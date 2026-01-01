@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: bicep-template
-          path: ${{ env.TEMPLATE-FILE }}
+          path: ${{ env.TEMPLATE_FILE }}
 
   # Use Bicep to deploy infrastructure + Publish webapp
   deploy:
@@ -79,7 +79,7 @@ jobs:
       - name: deploy
         uses: azure/arm-deploy@v2
         with:
-          subscriptionId: ${{ env.SUBSCRIPTION-ID }}
+          subscriptionId: ${{ env.SUBSCRIPTION_ID }}
           resourceGroupName: ${{ env.RESOURCE_GROUP }}
           template: bicep-template/webapp.bicep
           parameters: "webAppName=${{ env.WEBAPP-NAME }} location=${{ env.LOCATION }}"
@@ -92,7 +92,7 @@ jobs:
         uses: Azure/webapps-deploy@v3
         with:
           type: ZIP
-          app-name: ${{ env.WEBAPP-NAME  }}
+          app-name: ${{ env.WEBAPP_NAME  }}
           package: .net-app/app.zip
 
       # Publish website to Azure App Service using CLI (WebApp)
@@ -100,4 +100,4 @@ jobs:
         uses: Azure/cli@v2
         with:
           inlineScript: |
-            az webapp deploy --name ${{ env.WEBAPP-NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path .net-app/app.zip --type zip
+            az webapp deploy --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path .net-app/app.zip --type zip
