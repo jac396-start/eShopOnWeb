@@ -1,0 +1,72 @@
+name: eShop Docker CI/CD
+
+# Trigger on push to main or manually
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # Configuration for the .NET application build
+  DOTNET_VERSION: '8.0.x'
+  # REPLACE THIS with your Docker Hub username and repository name
+  IMAGE_NAME: jcrawford169/eshop-web 
+
+jobs:
+  # JOB 1: Test the Code (Taken from eShop configuration)
+  test-dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Setup .NET Core 8.0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Restore dependencies
+      - name: Install dependencies
+        run: dotnet restore ./eShopOnWeb.sln
+
+      # Build the project to ensure no compilation errors
+      - name: Build with dotnet
+        run: dotnet build ./eShopOnWeb.sln --configuration Release --no-restore
+
+      # Run Unit Tests
+      - name: Test with dotnet
+        run: dotnet test ./eShopOnWeb.sln --configuration Release --no-build --verbosity normal
+
+  # JOB 2: Build & Push Docker Image (Taken from Test configuration)
+  build-and-push-docker:
+    needs: test-dotnet # Only run if tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login to Docker Hub using your GitHub Secrets
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and Push the Image
+      # I have confirmed the path is src/Web/Dockerfile based on your uploaded file.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: src/Web/Dockerfile
+          push: true
+          # Tags the image with 'latest' AND the specific commit SHA
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # Caching to speed up future builds
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:cache
+          cache-to: type=inline,mode=max
